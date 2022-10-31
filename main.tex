@@ -1,0 +1,141 @@
+\documentclass[portrait, color=UCLburgundy, margin=1cm]{uclposter}
+
+\input{commands.tex}
+
+\usepackage{bm}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{caption}
+\usepackage{blindtext}
+\usepackage{siunitx}
+
+\input{glossary}
+
+\usepackage[style=ieee, maxbibnames=1, minbibnames=1, maxcitenames=1, mincitenames=1, backend=biber, defernumbers=false]{biblatex}
+\addbibresource{./Biblio.bib}
+\addbibresource{./extraBib.bib}
+
+\AtEveryBibitem{\clearfield{month}}
+\AtEveryBibitem{\clearfield{day}}
+\AtEveryBibitem{\clearfield{volume}}
+\AtEveryBibitem{\clearfield{issue}}
+\AtEveryBibitem{\clearfield{pages}}
+\AtEveryBibitem{\clearfield{number}}
+\AtEveryBibitem{\clearfield{title}}
+\AtEveryBibitem{\clearfield{isbn}}
+\AtEveryBibitem{\clearfield{keywords}}
+\AtEveryBibitem{\clearfield{issn}}
+\AtEveryBibitem{\clearfield{journal}}
+
+\usepackage{fontspec}
+\setmainfont[Ligatures=TeX]{LexendDeca-Regular.ttf}
+
+\begin{document}
+    \title{Pseudo-Bayesian DIP Denoising as a Preprocessing Step for Kinetic Modelling in Dynamic PET}
+    
+    \author[12*]{Alexander~C.~Whitehead}
+    \author[1]{Kjell~Erlandsson}
+    \author[3]{Ander~Biguri}
+    \author[4]{Scott~D.~Wollenweber}
+    \author[2]{\newline~Jamie~R.~McClelland}
+    \author[12]{Kris~Thielemans}
+    
+    \affil[1]{INM, UCL}
+    \affil[2]{CMIC, UCL}
+    \affil[3]{University of Cambridge}
+    \affil[4]{GE Healthcare}
+    \affil[*]{alexander.whitehead.18@ucl.ac.uk}
+    
+    \maketitle
+
+    \begin{multicols}{2}
+        \section*{Introduction}
+            \begin{highlightbox}[UCLlightgreen]
+                \begin{itemize}
+                    \item \gls{DIP} is a neural network based image denoising method where training and inference are performed independently on each new image~\cite{Ulyanov2018DeepPrior}.
+                    \item For \acrshort{PET}, in~\cite{Gong2019PETPrior} a U-Net with relatively high count/low motion brain scans are used.
+                    \item In~\cite{Hashimoto20214DNetwork} \gls{DIP} is extended to \acrshort{4D} dynamic \acrshort{PET}. Multiple output branches are added, one for each dynamic time point.
+                    \item In~\cite{Yang2022SimultaneousPrior} multiple \glss{NN} are used simultaneously.
+                    \item This work seeks to extend or simplify previous work, in order to denoise \acrshort{4D} dynamic \acrshort{PET} data.
+                \end{itemize}
+            \end{highlightbox}
+        
+        \section*{Methods}
+            \subsection*{\underline{\textbf{Network Design and Execution}}}
+                \begin{itemize}
+                    \item Modified U-Net~\cite{Weng2015U-Net:Segmentation}, with seven down/upsampling stages.
+                    \item Down/upsampling stage consisted of two convolutional layers (with two, four, eight, 16, 32, 64, or 128 channels).
+                    \item Split strided convolution and maxpooling layer concatenated.
+                    \item Trilinear upsampling layer.
+                    \item Edge padding, group normalisation~\cite{Wu2018GroupNormalization}, MISH activation~\cite{Misra2020Mish:Function}, and spatial dropout.
+                    \item Dropout to approximate Bayesian inference~\cite{Gal2015DropoutLearning}.
+                    \item Data edge padded to the nearest power of two and standardised.
+                    \item Input summed with Gaussian noise.
+                    \item \acrlong{MSE} and \gls{TV} were used as the loss function.
+                    \item AdamW~\cite{Loshchilov2017DecoupledRegularization} was used as optimiser.
+                    \item Two training regimes: One where each time point was treated independently, and where an independent model was updated for each time point, the mean of all model weights was used to initialise the next iteration.
+                    \item Training continued for all methods until the gradient of the loss function reduced below a threshold.
+                    \item Parameters were tuned using a grid search.
+                \end{itemize}
+            
+            \subsection*{\underline{\textbf{\acrshort{PET} Acquisition Simulation and Image Reconstruction}}}
+                \begin{itemize}
+                    \item Dynamic scans were generated using \acrshort{XCAT}.
+                    \item Patient-derived kinetic parameters were assigned to; 64 tissues, three tumours of 1.0 centimeter diameter in the left lung, and three tumours of 2.5 centimetre, 2.0 centimetre and 1.0 centimetre diameter in the liver.
+                    \item An input function for \acrshort{18F-FDG}, taken from~\cite{langsjoEffectsSubanestheticKetamine2004}, was used to simulate \glss{TAC} to create dynamic images.
+                    \item Reconstructed using \gls{OSEM} with 10 full iterations and 17 subsets.
+                \end{itemize}
+            
+            \subsection*{\underline{\textbf{Kinetic Modelling}}}
+                \begin{itemize}
+                    \item Indirect Patlak estimation used to generate Ki images~\cite{patlak1983GraphicalEvaluationBloodtoBrain}.
+                    \item \glss{VOI} were defined for the three lesions and two background regions.
+                    \item Mean value of Ki calculated in each \gls{VOI}.
+                \end{itemize}
+            
+            \subsection*{\underline{\textbf{Evaluation}}}
+                \begin{itemize}
+                    \item Data were also denoised using \gls{TV}, and the \gls{DIP} method presented in~\cite{Gong2019PETPrior}.
+                    \item Comparisons used included: A visual analysis, \gls{SSIM} to the ground truth~\cite{Wang2009MeanMeasures}, and Ki values.
+                \end{itemize}
+        
+        \section*{Conclusion}
+            \begin{highlightbox}[UCLlightgreen]
+                \begin{itemize}
+                    \item Evaluation indicated that parameter fine-tuning, depending on the distribution and count level, will be beneficial.
+                    \item Evaluation with patient data will follow.
+                    \item Uncertainty estimates need to be validated by comparison with repeated noise realisations.
+                \end{itemize}
+            \end{highlightbox}
+        
+        \AtNextBibliography{\tiny}
+        \printbibliography
+        
+        \section*{Results}
+            \begin{figure}[H]
+                \centering
+                
+                \includegraphics[width=0.9\linewidth]{visual_analysis.png}
+                
+                \begin{highlightbox}[UCLlightblue]
+                    \captionsetup{singlelinecheck=false, justification=centering}
+                    \caption{First row, first column denoised results, second column Ki results. Second row uncertainty results Colour map ranges consistent for all images in each section.}
+                \end{highlightbox}
+                
+                \label{fig:visual_analysis}
+            \end{figure}
+            
+            \begin{figure}[H]
+                \centering
+            
+                \includegraphics[width=0.9\linewidth]{ki.png}    
+                
+                \begin{highlightbox}[UCLlightblue]
+                    \captionsetup{singlelinecheck=false, justification=centering}
+                    \caption{Ki results (single voxel) of a Patlak reconstruction of all time points, plus uncertainty where applicable..}
+                \end{highlightbox}
+                
+                \label{fig:ki}
+            \end{figure}
+    \end{multicols}
+\end{document}
