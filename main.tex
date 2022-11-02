@@ -55,7 +55,6 @@
                     \item \gls{DIP} is a neural network based image denoising method where training and inference are performed independently on each new image~\cite{Ulyanov2018DeepPrior}.
                     \item For \acrshort{PET}, in~\cite{Gong2019PETPrior} a U-Net with relatively high count/low motion brain scans are used.
                     \item In~\cite{Hashimoto20214DNetwork} \gls{DIP} is extended to \acrshort{4D} dynamic \acrshort{PET}. Multiple output branches are added, one for each dynamic time point.
-                    \item In~\cite{Yang2022SimultaneousPrior} multiple \glss{NN} are used simultaneously.
                     \item This work seeks to extend or simplify previous work, in order to denoise \acrshort{4D} dynamic \acrshort{PET} data.
                 \end{itemize}
             \end{highlightbox}
@@ -64,33 +63,29 @@
             \subsection*{\underline{\textbf{Network Design and Execution}}}
                 \begin{itemize}
                     \item Modified U-Net~\cite{Weng2015U-Net:Segmentation}, with seven down/upsampling stages.
-                    \item Down/upsampling stage consisted of two convolutional layers (with two, four, eight, 16, 32, 64, or 128 channels).
-                    \item Split strided convolution and maxpooling layer concatenated.
-                    \item Trilinear upsampling layer.
+                    \item Each down/upsampling block was preceeded by two convolutional layers (with two, four, eight, 16, 32, 64, or 128 channels).
+                    \item Split strided convolution and maxpooling downsampling layers concatenated. Trilinear upsampling layer.
                     \item Edge padding, group normalisation~\cite{Wu2018GroupNormalization}, MISH activation~\cite{Misra2020Mish:Function}, and spatial dropout.
                     \item Dropout to approximate Bayesian inference~\cite{Gal2015DropoutLearning}.
-                    \item Data edge padded to the nearest power of two and standardised.
-                    \item Input summed with Gaussian noise.
-                    \item \acrlong{MSE} and \gls{TV} were used as the loss function.
-                    \item AdamW~\cite{Loshchilov2017DecoupledRegularization} was used as optimiser.
+                    \item Input data edge padded to the nearest power of two and standardised.
+                    \item Input to \gls{NN} summed with equal magnitude Gaussian noise.
+                    \item \acrlong{MSE} and \gls{TV} were used as the loss function. AdamW~\cite{Loshchilov2017DecoupledRegularization} was used as optimiser.
                     \item Two training regimes: One where each time point was treated independently, and where an independent model was updated for each time point, the mean of all model weights was used to initialise the next iteration.
                     \item Training continued for all methods until the gradient of the loss function reduced below a threshold.
-                    \item Parameters were tuned using a grid search.
                 \end{itemize}
             
             \subsection*{\underline{\textbf{\acrshort{PET} Acquisition Simulation and Image Reconstruction}}}
                 \begin{itemize}
                     \item Dynamic scans were generated using \acrshort{XCAT}.
-                    \item Patient-derived kinetic parameters were assigned to; 64 tissues, three tumours of 1.0 centimeter diameter in the left lung, and three tumours of 2.5 centimetre, 2.0 centimetre and 1.0 centimetre diameter in the liver.
+                    \item Patient-derived kinetic parameters were assigned to; 64 tissues, three tumours of 1.0cm diameter in the left lung, and three tumours of 2.5cm, 2.0cm and 1.0cm diameter in the liver.
                     \item An input function for \acrshort{18F-FDG}, taken from~\cite{langsjoEffectsSubanestheticKetamine2004}, was used to simulate \glss{TAC} to create dynamic images.
                     \item Reconstructed using \gls{OSEM} with 10 full iterations and 17 subsets.
                 \end{itemize}
             
             \subsection*{\underline{\textbf{Kinetic Modelling}}}
                 \begin{itemize}
+                    \item Each denoising method was applied independently on the data before Patlak estimation.
                     \item Indirect Patlak estimation used to generate Ki images~\cite{patlak1983GraphicalEvaluationBloodtoBrain}.
-                    \item \glss{VOI} were defined for the three lesions and two background regions.
-                    \item Mean value of Ki calculated in each \gls{VOI}.
                 \end{itemize}
             
             \subsection*{\underline{\textbf{Evaluation}}}
@@ -102,9 +97,9 @@
         \section*{Conclusion}
             \begin{highlightbox}[UCLlightgreen]
                 \begin{itemize}
-                    \item Evaluation indicated that parameter fine-tuning, depending on the distribution and count level, will be beneficial.
+                    \item Evaluation indicated that the new \gls{DIP} method, particularly when trained combined, provided images with less noise and more quantitative accuracy than other methods.
+                    \item The combined method had lower uncertainty.
                     \item Evaluation with patient data will follow.
-                    \item Uncertainty estimates need to be validated by comparison with repeated noise realisations.
                 \end{itemize}
             \end{highlightbox}
         
