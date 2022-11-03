@@ -54,23 +54,36 @@
                 \begin{itemize}
                     \item \gls{DIP} is a neural network based image denoising method where training and inference are performed independently on each new image~\cite{Ulyanov2018DeepPrior}.
                     \item For \acrshort{PET}, in~\cite{Gong2019PETPrior} a U-Net with relatively high count/low motion brain scans are used.
-                    \item In~\cite{Hashimoto20214DNetwork} \gls{DIP} is extended to \acrshort{4D} dynamic \acrshort{PET}. Multiple output branches are added, one for each dynamic time point.
+                    \item In~\cite{Hashimoto20214DNetwork}, \gls{DIP} is extended to \acrshort{4D} dynamic \acrshort{PET}. Multiple output branches are added, one for each dynamic time point.
                     \item This work seeks to extend or simplify previous work, in order to denoise \acrshort{4D} dynamic \acrshort{PET} data.
                 \end{itemize}
             \end{highlightbox}
         
         \section*{Methods}
-            \subsection*{\underline{\textbf{Network Design and Execution}}}
+            \subsection*{\underline{\textbf{Overall flow}}}
+                \begin{enumerate}
+                    \item Reconstruct each time frame.
+                    \item Denoise dynamic images method using modified \gls{DIP}, which also outputs uncertainty estimates.
+                    \item Weighted indirect Patlak estimation used to generate Ki images~\cite{patlak1983GraphicalEvaluationBloodtoBrain}.
+                \end{enumerate}
+            
+            \subsection*{\underline{\textbf{Network Design and Execution used for \gls{DIP}}}}
                 \begin{itemize}
-                    \item Modified U-Net~\cite{Weng2015U-Net:Segmentation}, with seven down/upsampling stages.
-                    \item Each down/upsampling block was preceeded by two convolutional layers (with two, four, eight, 16, 32, 64, or 128 channels).
-                    \item Split strided convolution and maxpooling downsampling layers concatenated. Trilinear upsampling layer.
-                    \item Edge padding, group normalisation~\cite{Wu2018GroupNormalization}, MISH activation~\cite{Misra2020Mish:Function}, and spatial dropout.
-                    \item Dropout to approximate Bayesian inference~\cite{Gal2015DropoutLearning}.
-                    \item Input data edge padded to the nearest power of two and standardised.
-                    \item Input to \gls{NN} summed with equal magnitude Gaussian noise.
-                    \item \acrlong{MSE} and \gls{TV} were used as the loss function. AdamW~\cite{Loshchilov2017DecoupledRegularization} was used as optimiser.
-                    \item Two training regimes: One where each time point was treated independently, and where an independent model was updated for each time point, the mean of all model weights was used to initialise the next iteration.
+                    \item Modified U-Net~\cite{Weng2015U-Net:Segmentation}, with 7 down/upsampling stages (details in proceedings).
+                    % \item Each down/upsampling block was preceded by 2 convolutional layers% (with two, four, eight, 16, 32, 64, or 128 channels).
+                    % \item Split strided convolution and maxpooling downsampling layers concatenated. Trilinear upsampling layer.
+                    % \item Edge padding, group normalisation~\cite{Wu2018GroupNormalization}, MISH activation~\cite{Misra2020Mish:Function}, and spatial dropout.
+                    \item Spatial dropout to approximate Bayesian inference~\cite{Gal2015DropoutLearning}.
+                    % \item Input data edge padded to the nearest power of two and standardised.
+                    % \item Input to \gls{NN} summed with equal magnitude Gaussian noise.
+                    \item Loss functions: \acrlong{MSE} and \acrshort{TV};  AdamW~\cite{Loshchilov2017DecoupledRegularization} optimiser.
+                    \item 2 training regimes:
+                    
+                    \begin{enumerate}
+                        \item Each time point was treated independently.
+                        \item An independent model was updated for each time point, the mean of all model weights was then used to initialise the next iteration.
+                    \end{enumerate}
+                    
                     \item Training continued for all methods until the gradient of the loss function reduced below a threshold.
                 \end{itemize}
             
@@ -79,19 +92,26 @@
                     \item Dynamic scans were generated using \acrshort{XCAT}.
                     \item Patient-derived kinetic parameters were assigned to; 64 tissues, three tumours of 1.0cm diameter in the left lung, and three tumours of 2.5cm, 2.0cm and 1.0cm diameter in the liver.
                     \item An input function for \acrshort{18F-FDG}, taken from~\cite{langsjoEffectsSubanestheticKetamine2004}, was used to simulate \glss{TAC} to create dynamic images.
-                    \item Reconstructed using \gls{OSEM} with 10 full iterations and 17 subsets.
+                    \item Reconstructed using \acrshort{OSEM} with 10 full iterations and 17 subsets.
                 \end{itemize}
             
             \subsection*{\underline{\textbf{Kinetic Modelling}}}
                 \begin{itemize}
-                    \item Each denoising method was applied independently on the data before Patlak estimation.
                     \item Indirect Patlak estimation used to generate Ki images~\cite{patlak1983GraphicalEvaluationBloodtoBrain}.
+                    \item The uncertainties of the parameters were estimated as follows:
+                    
+                    \begin{enumerate}
+                        \item Normally distributed noise was added to the dynamic images, with standard deviation given by the \gls{DIP}-uncertainty.
+                        \item Patlak analysis was performed.
+                        \item The procedure was repeated for 10 noise realisations.
+                        \item The standard deviation of the Ki parameters were calculated.
+                    \end{enumerate}
                 \end{itemize}
             
             \subsection*{\underline{\textbf{Evaluation}}}
                 \begin{itemize}
-                    \item Data were also denoised using \gls{TV}, and the \gls{DIP} method presented in~\cite{Gong2019PETPrior}.
-                    \item Comparisons used included: A visual analysis, \gls{SSIM} to the ground truth~\cite{Wang2009MeanMeasures}, and Ki values.
+                    \item Data were also denoised using \acrshort{TV}, and the \gls{DIP} method presented in~\cite{Gong2019PETPrior}.
+                    \item Comparisons used included: A visual analysis, \acrshort{SSIM} to the ground truth~\cite{Wang2009MeanMeasures}, and Ki values.
                 \end{itemize}
         
         \section*{Conclusion}
@@ -103,7 +123,7 @@
                 \end{itemize}
             \end{highlightbox}
         
-        \AtNextBibliography{\tiny}
+        \AtNextBibliography{\small}
         \printbibliography
         
         \section*{Results}
@@ -127,7 +147,7 @@
                 
                 \begin{highlightbox}[UCLlightblue]
                     \captionsetup{singlelinecheck=false, justification=centering}
-                    \caption{Ki results (single voxel) of a Patlak reconstruction of all time points, plus uncertainty where applicable..}
+                    \caption{Ki results (single voxel) of a Patlak reconstruction of all time points, plus uncertainty where applicable. \gls{DIP}-0 being the original, \gls{DIP}-1 being the new sequential, and \gls{DIP}-2 being the new combined implementation.}
                 \end{highlightbox}
                 
                 \label{fig:ki}
